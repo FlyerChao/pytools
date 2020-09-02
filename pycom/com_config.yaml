@@ -1,0 +1,3 @@
+- command: cid
+  interval: 10
+  count: 100

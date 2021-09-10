@@ -1,0 +1,260 @@
+- cmd_str: '[AUTO,ON]'
+- cmd_str: '[AUTO,RANDOM_ATTACH,ON]'
+- cmd_str: '[AUTO,REBOOT]'
+- cmd_str: '[AUTO,WIPE_CLR]'
+- cmd_str: '[AUTO,SYNC]'
+- cmd_str: '[AUTO,OFF]'
+- cmd_str: '[AUTO,DALIHELP]'
+- cmd_str: '[AUTO,SOFTWAREVER]'
+- cmd_str: '[AUTO,D4ISTACKVER]'
+- cmd_str: '[AUTO,COMMISSION]'
+- cmd_str: '[AUTO,DALI2COMMISSION]'
+- cmd_str: '[AUTO,GETGEARSNUM]'
+- cmd_str: '[AUTO,GETDEVICESNUM]'
+- cmd_str: '[AUTO,DISABLECLO]'
+- cmd_str: '[AUTO,GETDRIVERINFO]'
+- cmd_str: '[AUTO,DIM]'
+- cmd_str: '[AUTO,SETDIM]'
+- cmd_str: '[AUTO,SETFADE]'
+- cmd_str: '[AUTO,DALICMD]'
+- cmd_str: '[AUTO,DALITWICECMD]'
+- cmd_str: '[AUTO,DALIQUERY]'
+- cmd_str: '[AUTO,DALI2CMD]'
+- cmd_str: '[AUTO,DALI2TWICECMD]'
+- cmd_str: '[AUTO,DALI2QUERY]'
+- cmd_str: '[AUTO,READMEMBANK]'
+- cmd_str: '[AUTO,WRITEMEMBANK]'
+- cmd_str: '[AUTO,D2READMEMBANK]'
+- cmd_str: '[AUTO,D2WRITEMEMBANK]'
+- cmd_str: '[AUTO,DALIRESETVALUES]'
+- cmd_str: '[AUTO,DALIRESETNVM]'
+- cmd_str: '[AUTO,DALIRESETRAM]'
+- cmd_str: '[AUTO,DALIRESETROM]'
+- cmd_str: '[AUTO,DALIRESETMB0]'
+- cmd_str: '[AUTO,DALIRESETMB201]'
+- cmd_str: '[AUTO,DALIPRINTMB0]'
+- cmd_str: '[AUTO,DALIPRINTMB201]'
+- cmd_str: '[AUTO,CHANGEIP]'
+- cmd_str: '[AUTO,RLY]'
+- cmd_str: '[AUTO,SETRLY]'
+- cmd_str: '[AUTO,OTA_CLR]'
+- cmd_str: '[AUTO,WIPE]'
+- cmd_str: '[AUTO,CLIENT_ID]'
+- cmd_str: '[AUTO,NET_ON]'
+- cmd_str: '[AUTO,NET_OFF]'
+- cmd_str: '[AUTO,DISABLE_CCLK]'
+- cmd_str: '[AUTO,SETTIME]'
+- cmd_str: '[AUTO,GETTIME]'
+- cmd_str: '[AUTO,GETSHAPE]'
+- cmd_str: '[AUTO,LAMPINFO]'
+- cmd_str: '[AUTO,RANDOM_ATTACH]'
+- cmd_str: '[AUTO,SUNRISE]'
+- cmd_str: '[AUTO,SUNSET]'
+- cmd_str: '[AUTO,NET]'
+- cmd_str: '[AUTO,GPSRTC]'
+- cmd_str: '[AUTO,DEBUG_LEVEL]'
+- cmd_str: '[AUTO,SHOW_MEM]'
+- cmd_str: '[AUTO,SHOW_FLOW]'
+- cmd_str: '[AUTO,SETGPS_INVALIDTIME]'
+- cmd_str: '[AUTO,TIMEZONE]'
+- cmd_str: '[AUTO,LS_FILE]'
+- cmd_str: '[AUTO,SEND_AT]'
+- cmd_str: '[AUTO,MD_ON]'
+- cmd_str: '[AUTO,MD_OFF]'
+- cmd_str: '[AUTO,SETOCC_HOLDTIME]'
+- cmd_str: '[AUTO,GETOCC_HOLDTIME]'
+- cmd_str: '[AUTO,DEBUG_LEVEL_BYPASS]'
+- cmd_str: '[AUTO,SHELL]'
+- cmd_str: setmb0
+- cmd_str: cat
+- cmd_str: hexdump
+- cmd_str: catraw
+- cmd_str: hexdumpraw
+- cmd_str: rm
+- cmd_str: rmraw
+- cmd_str: touch
+- cmd_str: sendat
+- cmd_str: sendsms
+- cmd_str: photo_th
+- cmd_str: sun_offset
+- cmd_str: settime
+- cmd_str: mindim
+- cmd_str: switchtype
+- cmd_str: dimif
+- cmd_str: fallback
+- cmd_str: set_tz
+- cmd_str: set_mo
+- cmd_str: dst
+- cmd_str: get_shape
+- cmd_str: cal_sunrisetime
+- cmd_str: wipe
+- cmd_str: oldtime
+- cmd_str: setsun
+- cmd_str: alarm
+- cmd_str: random_attach
+- cmd_str: tilt_info
+- cmd_str: gpsalarm
+- cmd_str: set_lcfg
+- cmd_str: set_fcfg
+- cmd_str: dump_lcfg
+- cmd_str: dump_pcfg
+- cmd_str: dump_fcfg_ov
+- cmd_str: debug_level
+- cmd_str: otastart
+- cmd_str: otainfo
+- cmd_str: setholdtime
+- cmd_str: udp
+- cmd_str: test_pb
+- cmd_str: one2ten
+- cmd_str: help
+- cmd_str: dbgoff
+- cmd_str: dbgon
+- cmd_str: shelloff
+- cmd_str: ls
+- cmd_str: lsraw
+- cmd_str: clearraw
+- cmd_str: cf
+- cmd_str: sync
+- cmd_str: revision
+- cmd_str: connect
+- cmd_str: reset_modem
+- cmd_str: ploc
+- cmd_str: pfs
+- cmd_str: preg
+- cmd_str: psig
+- cmd_str: preb
+- cmd_str: psim
+- cmd_str: pcl
+- cmd_str: lalm
+- cmd_str: lml
+- cmd_str: lsl
+- cmd_str: lcal
+- cmd_str: lrt
+- cmd_str: lrt1
+- cmd_str: fid
+- cmd_str: fblob
+- cmd_str: mem
+- cmd_str: show_flow
+- cmd_str: otaststart
+- cmd_str: otaststop
+- cmd_str: changeip
+- cmd_str: xmodem_cb
+- cmd_str: xmodem_pb
+- cmd_str: otaclr
+- cmd_str: otaready
+- cmd_str: reboot
+- cmd_str: delimage
+- cmd_str: otahead
+- cmd_str: freespace
+- cmd_str: flashera
+- cmd_str: makefs
+- cmd_str: fsize
+- cmd_str: fatfs_test
+- cmd_str: gpsynctest
+- cmd_str: gpscleartest
+- cmd_str: setluxalarm
+- cmd_str: clearluxalarm
+- cmd_str: ssp
+- cmd_str: psp
+- cmd_str: msp
+- cmd_str: spinfo
+- cmd_str: lampinfo
+- cmd_str: version
+- cmd_str: cid
+- cmd_str: addlog
+- cmd_str: resetlog
+- cmd_str: mutime
+- cmd_str: gutime
+- cmd_str: utc
+- cmd_str: local
+- cmd_str: gltime
+- cmd_str: rtc
+- cmd_str: astro
+- cmd_str: cal_test
+- cmd_str: calinfo
+- cmd_str: allinfo
+- cmd_str: resetall
+- cmd_str: get_mo
+- cmd_str: reboot_reason
+- cmd_str: set_pcfg
+- cmd_str: dump_mb
+- cmd_str: dump_fcfg
+- cmd_str: get_swt
+- cmd_str: lastgasp
+- cmd_str: pb_mod_ver
+- cmd_str: get_sync_type
+- cmd_str: alarmstate
+- cmd_str: alarmdata
+- cmd_str: poweron
+- cmd_str: poweroff
+- cmd_str: hwreset
+- cmd_str: rftest
+- cmd_str: modemver
+- cmd_str: holdtime
+- cmd_str: mb0
+- cmd_str: mb201
+- cmd_str: reporttime
+- cmd_str: rstocc
+- cmd_str: occstate
+- cmd_str: '[FM, FT_ON]'
+- cmd_str: '[FM, FT_OFF]'
+- cmd_str: '[FM, FT_G]'
+- cmd_str: '[FM, NB_C]'
+- cmd_str: '[FM, NB_AUTOCONN_ON]'
+- cmd_str: '[FM, NB_AUTOCONN_OFF]'
+- cmd_str: '[FM, LORA_C]'
+- cmd_str: '[FM, GPS_G]'
+- cmd_str: '[FM, GPS_R]'
+- cmd_str: '[FM, GPS_L]'
+- cmd_str: '[FM, LTIME_G]'
+- cmd_str: '[FM, DALI_C]'
+- cmd_str: '[FM, DALI_ON]'
+- cmd_str: '[FM, DALI_OFF]'
+- cmd_str: '[FM, 1TO10V_C]'
+- cmd_str: '[FM, 1TO10V_S]'
+- cmd_str: '[FM, 1TO10V_V]'
+- cmd_str: '[FM, 1TO10V_AUTO]'
+- cmd_str: '[FM, LUX_G]'
+- cmd_str: '[FM, LUXAD_G]'
+- cmd_str: '[FM, SPIFLASH_C]'
+- cmd_str: '[FM, HWVER_G]'
+- cmd_str: '[FM, HWVER_S]'
+- cmd_str: '[FM, TENNC_S]'
+- cmd_str: '[FM, TENNC_G]'
+- cmd_str: '[FM, SETTINGS_S]'
+- cmd_str: '[FM, SETTINGS_G]'
+- cmd_str: '[FM, TILT_C]'
+- cmd_str: '[FM, TILT_G]'
+- cmd_str: '[FM, SECURE_S]'
+- cmd_str: '[FM, SECURE_G]'
+- cmd_str: '[FM, TYPE_S]'
+- cmd_str: '[FM, TYPE_G]'
+- cmd_str: '[FM, MODEMV_G]'
+- cmd_str: '[FM, RELAY_C]'
+- cmd_str: '[FM, UPDATE_MODEM]'
+- cmd_str: '[FM, CHANGENETWORK]'
+- cmd_str: '[FM, LED_C]'
+- cmd_str: '[FM, VDC_C]'
+- cmd_str: '[FM, VEDLC_C]'
+- cmd_str: '[FM, SID_S]'
+- cmd_str: '[FM, SID_G]'
+- cmd_str: '[FM, TEMP_C]'
+- cmd_str: '[FM, TEMP_G]'
+- cmd_str: '[FM, TEMP_RAW_G]'
+- cmd_str: '[FM, RFTEST_ON]'
+- cmd_str: '[FM, RFTEST_OFF]'
+- cmd_str: '[FM, POWERSET]'
+- cmd_str: '[FM, POWERSETDELAYT]'
+- cmd_str: '[FM, POWERSETMODE]'
+- cmd_str: '[FM, RST_UFOTACONF]'
+- cmd_str: '[FM, UOTA_STATE_G]'
+- cmd_str: '[FM, NB_PWR_ON]'
+- cmd_str: '[FM, NB_PWR_OFF]'
+- cmd_str: '[FM, ERASE_MEM]'
+- cmd_str: '[FM, REBOOT_SYS]'
+- cmd_str: '[FM, SHELL]'
+- cmd_str: '[FM, PB_C]'
+- cmd_str: '[FM, PB_COMM_ON]'
+- cmd_str: '[FM, PB_COMM_OFF]'
+- cmd_str: '[AUTO,SEND_AT,AT+UPSD=0,0,1]'
+- cmd_str: ' '

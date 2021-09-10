@@ -1,4 +1,4 @@
-- compare_str: 'compare string 2'
-  send_cmd: 'send command 1'
-- compare_str: 'compare string 2'
-  send_cmd: 'send command 2'
+- compare_str: '1111111111111111111111111111'
+  send_cmd: '1'
+- compare_str: 'network status 0 --> 1'
+  send_cmd: 'lastgasp'

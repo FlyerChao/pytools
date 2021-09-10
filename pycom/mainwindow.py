@@ -33,6 +33,7 @@ class Ui_MainWindow(object):
         self.textbrowser.setObjectName("textbrowser")
         self.textbrowser.document().setMaximumBlockCount(10000)
         #设置背景图片，固定，上下左右居中
+        # self.textbrowser.setStyleSheet("background-image:url(:/water.png);\n"
         self.textbrowser.setStyleSheet("background-attachment:fixed;\n"
                                     "background-repeat:none;\n"
                                     "background-position:center")
@@ -98,6 +99,15 @@ class Ui_MainWindow(object):
         self.pushButton_4.setMinimumSize(QtCore.QSize(80, 20))
         self.pushButton_4.setObjectName("pushButton_4")
         self.horizontalLayout.addWidget(self.pushButton_4)
+
+        # self.checkBox_3 = QtWidgets.QCheckBox(self.centralWidget)
+        # sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        # sizePolicy.setHorizontalStretch(0)
+        # sizePolicy.setVerticalStretch(0)
+        # sizePolicy.setHeightForWidth(self.checkBox_3.sizePolicy().hasHeightForWidth())
+        # self.checkBox_3.setSizePolicy(sizePolicy)
+        # self.checkBox_3.setObjectName("checkBox_3")
+        # self.horizontalLayout.addWidget(self.checkBox_3)
 
         self.pushButton_3 = QtWidgets.QPushButton(self.centralWidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
@@ -165,6 +175,28 @@ class Ui_MainWindow(object):
         self.checkBox_cmp.setSizePolicy(sizePolicy)
         self.checkBox_cmp.setObjectName("checkBox_cmp")
         self.horizontalLayout_2.addWidget(self.checkBox_cmp)
+
+
+        # self.lineEdit_2 = QtWidgets.QLineEdit(self.centralWidget)
+        # self.lineEdit_2.setEnabled(True)
+        # sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        # sizePolicy.setHorizontalStretch(0)
+        # sizePolicy.setVerticalStretch(0)
+        # sizePolicy.setHeightForWidth(self.lineEdit_2.sizePolicy().hasHeightForWidth())
+        # self.lineEdit_2.setSizePolicy(sizePolicy)
+        # self.lineEdit_2.setMinimumSize(QtCore.QSize(20, 20))
+        # self.lineEdit_2.setMaximumSize(QtCore.QSize(40, 20))
+        # self.lineEdit_2.setObjectName("lineEdit_2")
+        # self.horizontalLayout_2.addWidget(self.lineEdit_2)
+
+        # self.label_7 = QtWidgets.QLabel(self.centralWidget)
+        # sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        # sizePolicy.setHorizontalStretch(0)
+        # sizePolicy.setVerticalStretch(0)
+        # sizePolicy.setHeightForWidth(self.label_7.sizePolicy().hasHeightForWidth())
+        # self.label_7.setSizePolicy(sizePolicy)
+        # self.label_7.setObjectName("label_7")
+        # self.horizontalLayout_2.addWidget(self.label_7)
 
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem1)
@@ -266,7 +298,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_4.addWidget(self.pushButton_2cmd)
         #second cmd end
 
-        # second cmd begin
+        # third cmd begin
         self.lineEdit_3cmd = QtWidgets.QLineEdit(self.centralWidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -285,7 +317,17 @@ class Ui_MainWindow(object):
         self.pushButton_3cmd.setSizePolicy(sizePolicy)
         self.pushButton_3cmd.setObjectName("pushButton_3cmd")
         self.horizontalLayout_4.addWidget(self.pushButton_3cmd)
-        #second cmd end
+        #third cmd end
+
+        self.listView = QtWidgets.QListView(self.centralWidget)
+        # sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.pushButton.sizePolicy().hasHeightForWidth())
+        self.listView.setSizePolicy(sizePolicy)
+        self.listView.setGeometry(QtCore.QRect(10, 10, 10, 10))
+        self.listView.setObjectName("listView")
+        self.horizontalLayout_4.addWidget(self.listView)
 
         spacerItem3 = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_4.addItem(spacerItem3)
@@ -321,6 +363,15 @@ class Ui_MainWindow(object):
         self.checkBox.setObjectName("checkBox")
         self.horizontalLayout_5.addWidget(self.checkBox)
 
+        # self.checkBox_2 = QtWidgets.QCheckBox(self.centralWidget)
+        # sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        # sizePolicy.setHorizontalStretch(0)
+        # sizePolicy.setVerticalStretch(0)
+        # sizePolicy.setHeightForWidth(self.checkBox_2.sizePolicy().hasHeightForWidth())
+        # self.checkBox_2.setSizePolicy(sizePolicy)
+        # self.checkBox_2.setObjectName("checkBox_2")
+        # self.horizontalLayout_5.addWidget(self.checkBox_2)
+
         spacerItem4 = QtWidgets.QSpacerItem(60, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_5.addItem(spacerItem4)
         self.gridLayout.addLayout(self.horizontalLayout_5, 6, 0, 1, 1)
@@ -341,7 +392,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "串口助手V1.0"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "串口助手V2.2 by Fei"))
         self.label.setText(_translate("MainWindow", "串口号"))
         self.pushButton_2.setText(_translate("MainWindow", "打开串口"))
         self.pushButton_4.setText(_translate("MainWindow", "刷新串口设备"))
@@ -356,11 +407,11 @@ class Ui_MainWindow(object):
         self.label_4.setText(_translate("MainWindow", "数据位"))
         self.label_3.setText(_translate("MainWindow", "字符串输入框："))
         self.label_5.setText(_translate("MainWindow", "停止位"))
-        self.lineEdit.setText(_translate("MainWindow", "cmd1"))
+        self.lineEdit.setText(_translate("MainWindow", "random_attach 0"))
         self.pushButton.setText(_translate("MainWindow", "发送"))
-        self.lineEdit_2cmd.setText(_translate("MainWindow", "cmd2"))
+        self.lineEdit_2cmd.setText(_translate("MainWindow", "sync"))
         self.pushButton_2cmd.setText(_translate("MainWindow", "发送"))
-        self.lineEdit_3cmd.setText(_translate("MainWindow", "cmd3"))
+        self.lineEdit_3cmd.setText(_translate("MainWindow", "resetall"))
         self.pushButton_3cmd.setText(_translate("MainWindow", "发送"))
         self.label_6.setText(_translate("MainWindow", "校验位"))
         self.checkBox.setText(_translate("MainWindow", "HEX发送"))

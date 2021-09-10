@@ -3,6 +3,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import *
+from PyQt5.QtCore import QStringListModel, Qt
+from serial.tools import miniterm
 from mainwindow import Ui_MainWindow
 import sys
 import os
@@ -17,12 +19,49 @@ import serial
 import serial.tools.list_ports
 # from pyico import *
 import yaml
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
+import re
+import datetime
+import queue
+import codecs
 
 window_out_s = ""
 global fp
 fp = ""
 global logfile_flag;
 logfile_flag = 0
+global g_mainWindow
+global edit_flag
+global queue_buf
+history_cmd_file_name='history_cmd.yaml'
+
+def fuzzyfinder_test(input, collection, accessor=lambda x: x):
+    """
+    Args:
+        input (str): A partial string which is typically entered by a user.
+        collection (iterable): A collection of strings which will be filtered
+                            based on the `input`.
+        accessor (function): If the `collection` is not an iterable of strings,
+                            then use the accessor to fetch the string that
+                            will be used for fuzzy matching.
+
+    Returns:
+        suggestions (generator): A generator object that produces a list of
+            suggestions narrowed down from `collection` using the `input`.
+    """
+    suggestions = []
+    input = str(input) if not isinstance(input, str) else input
+    pat = '.*?'.join(map(re.escape, input))
+    pat = '(?=({0}))'.format(pat)   # lookahead regex to manage overlapping matches
+    regex = re.compile(pat, re.IGNORECASE)
+    for item in collection:
+        r = list(regex.finditer(accessor(item)))
+        if r:
+            best = min(r, key=lambda x: len(x.group(1)))   # find shortest match
+            suggestions.append((len(best.group(1)), best.start(), accessor(item), item))
+
+    return (z[-1] for z in sorted(suggestions))
 
 # 继承QThread
 class LoopThread(QtCore.QThread):
@@ -33,6 +72,8 @@ class LoopThread(QtCore.QThread):
         super(LoopThread, self).__init__()
         self.serial_num = serial_num
         self.terminated = False
+        self.buffer = ''
+        self.queue = queue.Queue(maxsize=1048576)
 
     def __del__(self):
         self.wait()
@@ -40,31 +81,57 @@ class LoopThread(QtCore.QThread):
     def run(self):
         global logfile_flag;
         global fp
+        global queue_buf
         print("begin read serial")
         while not self.terminated:
-            if mainWindow.haveserial() == True:
-                b = Server2IoTextHandleBean()
+            if g_mainWindow.haveserial() == True:
+                # b = Server2IoTextHandleBean()
                 if self.serial_num.is_open is True:
-                    b.text_bin = super(io.IOBase, self.serial_num).readline()
-                    if len(b.text_bin) != 0:
-                        out_s = b.text_bin.decode('utf-8', errors='ignore')
+                    try:
+                        # if queue_buf.empty() is True:
+                        #     continue
+                        self.buffer += queue_buf.get()
+                        # b.text_bin = self.serial_num.read(self.serial_num.in_waiting or 1) #read all char in buffer
+                        # # print("11:%s"%(b.text_bin.decode('utf-8', errors='ignore')))
+                        # self.buffer +=  b.text_bin.decode('utf-8', errors='ignore')
 
-                        ct = time.time()
-                        local_time = time.localtime(ct)
-                        data_head = time.strftime("%Y-%m-%d %H:%M:%S", local_time)
-                        data_secs = (ct - int(ct)) * 1000
-                        time_stamp = "[%s.%03d]" % (data_head, data_secs)
+                        # while '\r' or '\n' in self.buffer: #split data line by line and store it in var
+                        # print("self.buffer-1111->>>>" + self.buffer)
+                        while '\n' in self.buffer: #split data line by line and store it in var
+                            # var, self.buffer = self.buffer.split('\r', 1)
+                            var, self.buffer = self.buffer.split('\n', 1)
+                            # print("22:%s"%(var))
+                            # print("---2222->>>>" + var)
+                            self.queue.put(var) #put received line in the queue
+                            # if len(var) != 0:
+                            if self.queue.empty() is True:
+                                continue
+                            temp_xx = self.queue.get()
+                            # print("3333:%s"%(temp_xx))
+                            out_s = str(temp_xx)
+                            # out_s = temp_xx.decode('utf-8', errors='ignore')
+                            time_stamp = datetime.datetime.now().strftime('[%Y-%m-%d %H:%M:%S.%f]')
+                            out_temp = out_s.replace('\r','')
+                            window_out_s = time_stamp + ': ' + out_temp.replace('\n','') + "\n"
 
-                        file_head = time.strftime("%Y%m%d_%H%M%S", local_time)
-                        file_name = "%s.log" % (file_head)
+                            if logfile_flag == 1:
+                                if fp is not None:
+                                    fp.write(window_out_s)
+                                    fp.flush()
+                            self.loop_signal.emit(window_out_s)  # 注意这里与_signal = pyqtSignal(str)中的类型相同
+                            # print("window_out_s-3333->>>>" + window_out_s)
+                            window_out_s = ""
 
-                        window_out_s = time_stamp + ': ' + out_s;
-
-                        if logfile_flag == 1:
-                            if fp != "":
-                                fp.write(window_out_s.replace('\r',''))
-                                fp.flush()
-                        self.loop_signal.emit(window_out_s)  # 注意这里与_signal = pyqtSignal(str)中的类型相同
+                    except Exception as e:
+                        print("============, error:%s" % (e))
+                        #串口拔出错误，关闭定时器
+                        print("uart eject")
+                        self.ser = None
+                        g_mainWindow.open_close(False)
+                        # MainWindow.findChildren.pushButton_2.setText("打开串口")
+                        #刷新一下串口的列表
+                        g_mainWindow.refresh()
+                        self.finished()
             else:
                 # print("will be end loop")
                 self.terminated = None
@@ -90,6 +157,275 @@ class Server2IoTextHandleBean(TextHandleBean):
         super().__init__()
         self.direction = '<<'
 
+codecs.register(lambda c: hexlify_codec.getregentry() if c == 'hexlify' else None)
+try:
+    raw_input
+except NameError:
+    # pylint: disable=redefined-builtin,invalid-name
+    raw_input = input   # in python3 it's "raw"
+    unichr = chr
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class Transform(object):
+    """do-nothing: forward all data unchanged"""
+    def rx(self, text):
+        """text received from serial port"""
+        return text
+
+    def tx(self, text):
+        """text to be sent to serial port"""
+        return text
+
+    def echo(self, text):
+        """text to be sent but displayed on console"""
+        return text
+
+
+class CRLF(Transform):
+    """ENTER sends CR+LF"""
+
+    def tx(self, text):
+        return text.replace('\n', '\r\n')
+
+
+class CR(Transform):
+    """ENTER sends CR"""
+
+    def rx(self, text):
+        return text.replace('\r', '\n')
+
+    def tx(self, text):
+        return text.replace('\n', '\r')
+
+
+class LF(Transform):
+    """ENTER sends LF"""
+
+
+class NoTerminal(Transform):
+    """remove typical terminal control codes from input"""
+
+    REPLACEMENT_MAP = dict((x, 0x2400 + x) for x in range(32) if unichr(x) not in '\r\n\b\t')
+    REPLACEMENT_MAP.update(
+        {
+            0x7F: 0x2421,  # DEL
+            0x9B: 0x2425,  # CSI
+        })
+
+    def rx(self, text):
+        return text.translate(self.REPLACEMENT_MAP)
+
+    echo = rx
+
+
+class NoControls(NoTerminal):
+    """Remove all control codes, incl. CR+LF"""
+
+    REPLACEMENT_MAP = dict((x, 0x2400 + x) for x in range(32))
+    REPLACEMENT_MAP.update(
+        {
+            0x20: 0x2423,  # visual space
+            0x7F: 0x2421,  # DEL
+            0x9B: 0x2425,  # CSI
+        })
+
+
+class Printable(Transform):
+    """Show decimal code for all non-ASCII characters and replace most control codes"""
+
+    def rx(self, text):
+        r = []
+        for c in text:
+            if ' ' <= c < '\x7f' or c in '\r\n\b\t':
+                r.append(c)
+            elif c < ' ':
+                r.append(unichr(0x2400 + ord(c)))
+            else:
+                r.extend(unichr(0x2080 + ord(d) - 48) for d in '{:d}'.format(ord(c)))
+                r.append(' ')
+        return ''.join(r)
+
+    echo = rx
+
+
+class Colorize(Transform):
+    """Apply different colors for received and echo"""
+
+    def __init__(self):
+        # XXX make it configurable, use colorama?
+        self.input_color = '\x1b[37m'
+        self.echo_color = '\x1b[31m'
+
+    def rx(self, text):
+        return self.input_color + text
+
+    def echo(self, text):
+        return self.echo_color + text
+
+
+class DebugIO(Transform):
+    """Print what is sent and received"""
+
+    def rx(self, text):
+        sys.stderr.write(' [RX:{!r}] '.format(text))
+        sys.stderr.flush()
+        return text
+
+    def tx(self, text):
+        sys.stderr.write(' [TX:{!r}] '.format(text))
+        sys.stderr.flush()
+        return text
+
+# other ideas:
+# - add date/time for each newline
+# - insert newline after: a) timeout b) packet end character
+
+EOL_TRANSFORMATIONS = {
+    'crlf': CRLF,
+    'cr': CR,
+    'lf': LF,
+}
+
+TRANSFORMATIONS = {
+    'direct': Transform,    # no transformation
+    'default': NoTerminal,
+    'nocontrol': NoControls,
+    'printable': Printable,
+    'colorize': Colorize,
+    'debug': DebugIO,
+}
+
+class Miniterm(object):
+    """\
+    Terminal application. Copy data from serial port to console and vice versa.
+    Handle special keys from the console to show menu etc.
+    """
+
+    def __init__(self, serial_instance, echo=False, eol='crlf', filters=()):
+        # self.console = Console()
+        self.serial = serial_instance
+        self.echo = echo
+        self.raw = False
+        self.input_encoding = 'UTF-8'
+        self.output_encoding = 'UTF-8'
+        self.eol = eol
+        self.filters = filters
+        self.update_transformations()
+        # self.exit_character = unichr(0x1d)  # GS/CTRL+]
+        # self.menu_character = unichr(0x14)  # Menu: CTRL+T
+        self.alive = None
+        self._reader_alive = None
+        self.receiver_thread = None
+        self.rx_decoder = None
+        self.tx_decoder = None
+        self.set_rx_encoding("UTF-8")
+
+    def _start_reader(self):
+        """Start reader thread"""
+        self._reader_alive = True
+        # start serial->console thread
+        self.receiver_thread = threading.Thread(target=self.reader, name='rx')
+        self.receiver_thread.daemon = True
+        self.receiver_thread.start()
+
+    def _stop_reader(self):
+        """Stop reader thread only, wait for clean exit of thread"""
+        self._reader_alive = False
+        if hasattr(self.serial, 'cancel_read'):
+            self.serial.cancel_read()
+        self.receiver_thread.join()
+
+    def start(self):
+        """start worker threads"""
+        self.alive = True
+        self._start_reader()
+        # enter console->serial loop
+        # self.transmitter_thread = threading.Thread(target=self.writer, name='tx')
+        # self.transmitter_thread.daemon = True
+        # self.transmitter_thread.start()
+        # self.console.setup()
+
+    def stop(self):
+        """set flag to stop worker threads"""
+        self.alive = False
+
+    def join(self, transmit_only=False):
+        """wait for worker threads to terminate"""
+        self.transmitter_thread.join()
+        if not transmit_only:
+            if hasattr(self.serial, 'cancel_read'):
+                self.serial.cancel_read()
+            self.receiver_thread.join()
+
+    def close(self):
+        self.serial.close()
+
+    def update_transformations(self):
+        """take list of transformation classes and instantiate them for rx and tx"""
+        transformations = [EOL_TRANSFORMATIONS[self.eol]] + [TRANSFORMATIONS[f]
+                                                             for f in self.filters]
+        self.tx_transformations = [t() for t in transformations]
+        self.rx_transformations = list(reversed(self.tx_transformations))
+
+    def set_rx_encoding(self, encoding, errors='replace'):
+        """set encoding for received data"""
+        self.input_encoding = encoding
+        self.rx_decoder = codecs.getincrementaldecoder(encoding)(errors)
+
+    def set_tx_encoding(self, encoding, errors='replace'):
+        """set encoding for transmitted data"""
+        self.output_encoding = encoding
+        self.tx_encoder = codecs.getincrementalencoder(encoding)(errors)
+
+    def dump_port_settings(self):
+        """Write current settings to sys.stderr"""
+        sys.stderr.write("\n--- Settings: {p.name}  {p.baudrate},{p.bytesize},{p.parity},{p.stopbits}\n".format(
+            p=self.serial))
+        sys.stderr.write('--- RTS: {:8}  DTR: {:8}  BREAK: {:8}\n'.format(
+            ('active' if self.serial.rts else 'inactive'),
+            ('active' if self.serial.dtr else 'inactive'),
+            ('active' if self.serial.break_condition else 'inactive')))
+        try:
+            sys.stderr.write('--- CTS: {:8}  DSR: {:8}  RI: {:8}  CD: {:8}\n'.format(
+                ('active' if self.serial.cts else 'inactive'),
+                ('active' if self.serial.dsr else 'inactive'),
+                ('active' if self.serial.ri else 'inactive'),
+                ('active' if self.serial.cd else 'inactive')))
+        except serial.SerialException:
+            # on RFC 2217 ports, it can happen if no modem state notification was
+            # yet received. ignore this error.
+            pass
+        sys.stderr.write('--- software flow control: {}\n'.format('active' if self.serial.xonxoff else 'inactive'))
+        sys.stderr.write('--- hardware flow control: {}\n'.format('active' if self.serial.rtscts else 'inactive'))
+        sys.stderr.write('--- serial input encoding: {}\n'.format(self.input_encoding))
+        sys.stderr.write('--- serial output encoding: {}\n'.format(self.output_encoding))
+        sys.stderr.write('--- EOL: {}\n'.format(self.eol.upper()))
+        sys.stderr.write('--- filters: {}\n'.format(' '.join(self.filters)))
+
+    def reader(self):
+        """loop and copy serial->console"""
+        global queue_buf
+        try:
+            while self.alive and self._reader_alive:
+                # read all that is there or wait for one byte
+                data = self.serial.read(self.serial.in_waiting or 1)
+                if data:
+                    if self.raw:
+                        # self.console.write_bytes(data)
+                        # print("0000"+data)
+                        queue_buf.put(data)
+                    else:
+                        text = self.rx_decoder.decode(data)
+                        for transformation in self.rx_transformations:
+                            text = transformation.rx(text)
+                        # self.console.write(text)
+                        # print("0000"+text)
+                        queue_buf.put(text)
+        except serial.SerialException:
+            self.alive = False
+            # self.console.cancel()
+            raise       # XXX handle instead of re-raise?
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     sigSet_textedit = pyqtSignal(str)  ####信号定义
@@ -118,15 +454,28 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         #波特率
         self.comboBox_2.addItem('115200')
-        self.comboBox_2.addItem('57600')
-        self.comboBox_2.addItem('56000')
-        self.comboBox_2.addItem('38400')
-        self.comboBox_2.addItem('19200')
-        self.comboBox_2.addItem('14400')
-        self.comboBox_2.addItem('9600')
-        self.comboBox_2.addItem('4800')
-        self.comboBox_2.addItem('2400')
         self.comboBox_2.addItem('1200')
+        self.comboBox_2.addItem('2400')
+        self.comboBox_2.addItem('4800')
+        self.comboBox_2.addItem('9600')
+        self.comboBox_2.addItem('14400')
+        self.comboBox_2.addItem('19200')
+        self.comboBox_2.addItem('38400')
+        self.comboBox_2.addItem('56000')
+        self.comboBox_2.addItem('57600')
+        self.comboBox_2.addItem('230400')
+        self.comboBox_2.addItem('460800')
+        self.comboBox_2.addItem('500000')
+        self.comboBox_2.addItem('576000')
+        self.comboBox_2.addItem('921600')
+        self.comboBox_2.addItem('1000000')
+        self.comboBox_2.addItem('1152000')
+        self.comboBox_2.addItem('1500000')
+        self.comboBox_2.addItem('2000000')
+        self.comboBox_2.addItem('2500000')
+        self.comboBox_2.addItem('3000000')
+        self.comboBox_2.addItem('3500000')
+        self.comboBox_2.addItem('4000000')
 
         #数据位
         self.comboBox_3.addItem('8')
@@ -164,6 +513,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.pushButton.clicked.connect(lambda:self.send(0))
         self.pushButton_2cmd.clicked.connect(lambda: self.send(1))
         self.pushButton_3cmd.clicked.connect(lambda:self.send(2))
+
+        self.lineEdit.textChanged.connect(lambda:self.line_edit_get(0))
+        self.lineEdit_2cmd.textChanged.connect(lambda:self.line_edit_get(1))
+        self.lineEdit_3cmd.textChanged.connect(lambda:self.line_edit_get(2))
+        # listview
+        self.slm = QStringListModel()
+        self.qlist = []
+        self.slm.setStringList(self.qlist)
+        self.listView.setModel(self.slm)
+        self.listView.clicked.connect(self.clicked_)
 
         #打开关闭串口按钮
         self.pushButton_2.clicked.connect(self.open_close)
@@ -205,6 +564,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # #定时器调用读取串口接收数据
         self.loop_send_timer.timeout.connect(self.fun_timer)
 
+
+    def clicked_(self, qModelIndex):
+        global edit_flag
+        text_str = str(self.list_text[qModelIndex.row()])
+        # print("选择结果" + text_str)
+        edit_num = edit_flag
+        if edit_num == 0:
+            self.lineEdit.setText(text_str)
+        elif edit_num == 1:
+            self.lineEdit_2cmd.setText(text_str)
+        elif edit_num == 2:
+            self.lineEdit_3cmd.setText(text_str)
+
     def send_bytes(self, send_str):
         if self.ser != None:
             #发送数据
@@ -229,11 +601,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             time_stamp = "[%s.%03d]" % (data_head, data_secs)
 
             file_head = time.strftime("%Y%m%d_%H%M%S", local_time)
-            file_name = "%s.log" % (file_head)
+            file_name_str = self.comboBox.currentText()
+            # file_name = "%s_%s.log" %(self.comboBox.currentText(), file_head)
+            file_name = "%s_%s.log" %(file_name_str.replace('/','_'), file_head)
 
             logfile_flag = 1
             if fp == "":
-                fp = open(file_name, "w+")
+                fp = open(file_name, "w+", encoding="utf-8")
         else:
             print("close log file")
             logfile_flag = 0
@@ -246,14 +620,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # 查询可用的串口
         if self.thread is None:
             return False
-
-        plist = list(serial.tools.list_ports.comports())
-        if len(plist) <= 0:
-            print("No used com!")
-            return False
-        else:
-            # print("have com can be used")
-            return True
+        if self.ser != None:
+            plist = list(serial.tools.list_ports.comports())
+            if len(plist) <= 0:
+                #串口拔出错误，关闭定时器
+                self.ser.close()
+                self.ser = None
+                print("No used com!")
+                return False
+            else:
+                # print("have com can be used")
+                return True
 
     #刷新一下串口
     def refresh(self):
@@ -302,9 +679,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     #获取按键对应的字符
                     char = event.text()
                     num = self.ser.write(char.encode('utf-8'))
-                # self.send_num = self.send_num + num
-                # dis = '发送：'+ '{:d}'.format(self.send_num) + '  接收:' + '{:d}'.format(self.receive_num)
-                # self.statusBar.showMessage(dis)
             else:
                 pass
             return True
@@ -332,7 +706,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     for command1 in self.dict_str:
                         print(command1['command'])
                     if self.loop_send_timer.isActive() != True:
-                            self.loop_send_timer.start(1000)  # 1s
+                            self.loop_send_timer.start(100)  # 1s
                 except expression as identifier:
                     pass
             else:
@@ -363,8 +737,42 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.send_num = 0
         self.receive_num = 0
 
+    #获取输入数据
+    def line_edit_get(self, edit_num):
+        global edit_flag
+        edit_flag = edit_num
+        collection = []
+        if edit_num == 0:
+            # print("edit1: ", self.lineEdit.text())
+            str_temp = self.lineEdit.text()
+        elif edit_num == 1:
+            # print("edit2: ", self.lineEdit_2cmd.text())
+            str_temp = self.lineEdit_2cmd.text()
+        elif edit_num == 2:
+            # print("edit3: ", self.lineEdit_3cmd.text())
+            str_temp = self.lineEdit_3cmd.text()
+        try:
+            with open(history_cmd_file_name) as fd:
+                cmd_str = yaml.unsafe_load(fd)
+            for command in cmd_str:
+                # print("history command is :", command['cmd_str'])
+                collection.append(command['cmd_str'])
+            # print("collection type is", type(collection))
+            # print( "collection data is :",collection)
+            # print(list(fuzzyfinder_test(str_temp,collection)))
+            self.list_text = list(fuzzyfinder_test(str_temp,collection))
+            self.slm.setStringList(self.list_text)
+            fd.close()
+        except Exception as e:
+            print("=====line_edit_get=====, error:%s" % (e))
+            pass
+
     #串口发送数据处理
     def send(self, button_num):
+        cmd_list = {}
+        collection = []
+        collection_tmp = []
+        tmp_dict = {}
         if self.ser != None:
             if button_num == 0:
                 input_s = self.lineEdit.text()
@@ -377,7 +785,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if (self.checkBox.checkState() == False):
                     input_s = input_s + '\r'
                     input_s = input_s.encode('utf-8')
-                    print("input_s is ", input_s)
+                    # print("input_s is ", input_s)
                 else:
                     #发送十六进制数据
                     input_s = input_s.strip() #删除前后的空格
@@ -397,12 +805,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         #添加到发送列表中
                         send_list.append(num)
                     input_s = bytes(send_list)
-                print(input_s)
+                # print(input_s)
                 #发送数据
                 try:
                     num = self.ser.write(input_s)
-                except:
+                    with open(history_cmd_file_name) as fd:
+                        cmd_list = yaml.unsafe_load(fd)
+                    fd.close()
+                    for command in cmd_list:
+                        collection.append(command['cmd_str'])
+                        collection_tmp.append(command['cmd_str'])
+                    collection_tmp.append(input_s.decode('utf-8').replace('\n', '').replace('\r', ''))
+                    set_collection = list(set(collection_tmp))
+                    if len(set_collection)==len(cmd_list):
+                        print("存在重复的，不需要写入文件")
+                    else:
+                        print("有新增项")
+                        tmp_dict['cmd_str']=input_s.decode('utf-8').replace('\n', '').replace('\r', '')
+                        cmd_list.append(tmp_dict)
+                        with open(history_cmd_file_name,"w",encoding="utf-8") as fd:
+                            yaml.dump(cmd_list,fd)
+                        fd.close()
 
+                except:
                     #串口拔出错误，关闭定时器
                     self.ser.close()
                     self.ser = None
@@ -489,13 +914,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if btn_sta == True:
             try:
                 #输入参数'COM13',115200
-                self.ser = serial.Serial(self.comboBox.currentText(), int(self.comboBox_2.currentText()), timeout=0.1)
-            except:
+                # self.ser = serial.Serial(self.comboBox.currentText(), int(self.comboBox_2.currentText()), timeout=0.1)
+                self.ser = serial.Serial(self.comboBox.currentText(), int(self.comboBox_2.currentText()), timeout=1)
+                self.miniterm = Miniterm(serial_instance=self.ser)
+            except Exception as e:
+                print("============, error:%s" % (e))
                 QMessageBox.critical(self, 'pycom','没有可用的串口或当前串口被占用')
                 return None
             #字符间隔超时时间设置
-            self.ser.interCharTimeout = 0.001
+            # self.ser.interCharTimeout = 0.001
+            self.ser.interCharTimeout = 0.1
             #1ms的测试周期
+            self.miniterm.start()
             self.loop_start()
             # self.timer.start(1)
             self.pushButton_2.setText("关闭串口")
@@ -505,11 +935,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if self.loop_send_timer.isActive() == True:
                 self.loop_send_timer.stop()
             self.loop_stop()
+            self.miniterm.stop()
             try:
                 #关闭串口
                 self.ser.close()
             except:
-                QMessageBox.critical(self, 'pycom','关闭串口失败')
+                # QMessageBox.critical(self, 'pycom','关闭串口失败')
                 return None
             time.sleep(0.5)
             self.ser = None
@@ -525,15 +956,40 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                             self.send_bytes(send_str=command_dic['command'])
                         elif self.sendcount <= ( int(command_dic['count']) * int(command_dic['interval'])):
                             self.send_bytes(send_str=command_dic['command'])
+                        # time.sleep(0.1)
         self.intervalseconds = self.intervalseconds + 1
         self.sendcount = self.sendcount + 1
 
+# 删除list字典的重复项
+def deleteDuplicate(li):
+    new_l = []
+    seen = set()
+    for d in li:
+        t = tuple(d.items())
+        if t not in seen:
+            seen.add(t)
+            new_l.append(d)
+        else:
+            print("duplicate is:",d)
+    return new_l
+
 if __name__ == "__main__":
     try:
+        # cgitb.enable(format='text')
         print("*** start at %s ***" % (time.ctime(time.time())))
+        queue_buf = queue.Queue(maxsize=1048576)
+
+        with open(history_cmd_file_name) as fd:
+            cmd_str = yaml.unsafe_load(fd)
+        fd.close()
+        cmd_temp = deleteDuplicate(cmd_str)
+        with open(history_cmd_file_name,"w",encoding="utf-8") as fd:
+            yaml.dump(cmd_temp,fd)
+        fd.close()
+
         app = QtWidgets.QApplication(sys.argv)
-        mainWindow = MainWindow()
-        mainWindow.show()
+        g_mainWindow = MainWindow()
+        g_mainWindow.show()
         sys.exit(app.exec_())
     except Exception as e:
         print("============, error:%s" % (e))

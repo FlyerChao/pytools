@@ -1,0 +1,31 @@
+# class GlobalColor(int):
+#         color0 = 0... # type: Qt.GlobalColor
+#         color1 = 1... # type: Qt.GlobalColor
+#         black = 2... # type: Qt.GlobalColor
+#         white = 3... # type: Qt.GlobalColor
+#         darkGray = 4... # type: Qt.GlobalColor
+#         gray = 5... # type: Qt.GlobalColor
+#         lightGray = 6... # type: Qt.GlobalColor
+#         red = 7... # type: Qt.GlobalColor
+#         green = 8... # type: Qt.GlobalColor
+#         blue = 9... # type: Qt.GlobalColor
+#         cyan = 10... # type: Qt.GlobalColor
+#         magenta = 11... # type: Qt.GlobalColor
+#         yellow = 12... # type: Qt.GlobalColor
+#         darkRed = 13... # type: Qt.GlobalColor
+#         darkGreen = 14... # type: Qt.GlobalColor
+#         darkBlue = 15... # type: Qt.GlobalColor
+#         darkCyan = 16... # type: Qt.GlobalColor
+#         darkMagenta = 17... # type: Qt.GlobalColor
+#         darkYellow = 18... # type: Qt.GlobalColor
+#         transparent = 19... # type: Qt.GlobalColor
+
+- compare_str: 'INFO: '
+  color: 9
+- compare_str: 'DEBUG:'
+  color: 2
+- compare_str: '=>ERROR:'
+  color: 7
+- compare_str: 'WARNNING:'
+  color: 10
+

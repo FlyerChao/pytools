@@ -1,0 +1,7 @@
+# time delay is second
+- command: "[AUTO,ON]"
+  timedelay: 4
+- command: "[AUTO,ON]"
+  timedelay: 3
+- command: "[AUTO,ON]"
+  timedelay: 2

@@ -85,41 +85,27 @@ class LoopThread(QtCore.QThread):
         print("begin read serial")
         while not self.terminated:
             if g_mainWindow.haveserial() == True:
-                # b = Server2IoTextHandleBean()
                 if self.serial_num.is_open is True:
                     try:
-                        # if queue_buf.empty() is True:
-                        #     continue
                         self.buffer += queue_buf.get()
-                        # b.text_bin = self.serial_num.read(self.serial_num.in_waiting or 1) #read all char in buffer
-                        # # print("11:%s"%(b.text_bin.decode('utf-8', errors='ignore')))
-                        # self.buffer +=  b.text_bin.decode('utf-8', errors='ignore')
-
-                        # while '\r' or '\n' in self.buffer: #split data line by line and store it in var
-                        # print("self.buffer-1111->>>>" + self.buffer)
                         while '\n' in self.buffer: #split data line by line and store it in var
-                            # var, self.buffer = self.buffer.split('\r', 1)
                             var, self.buffer = self.buffer.split('\n', 1)
-                            # print("22:%s"%(var))
-                            # print("---2222->>>>" + var)
                             self.queue.put(var) #put received line in the queue
-                            # if len(var) != 0:
                             if self.queue.empty() is True:
                                 continue
                             temp_xx = self.queue.get()
-                            # print("3333:%s"%(temp_xx))
-                            out_s = str(temp_xx)
-                            # out_s = temp_xx.decode('utf-8', errors='ignore')
+                            out_s = str(temp_xx.replace('\0',''))
                             time_stamp = datetime.datetime.now().strftime('[%Y-%m-%d %H:%M:%S.%f]')
                             out_temp = out_s.replace('\r','')
                             window_out_s = time_stamp + ': ' + out_temp.replace('\n','') + "\n"
+                            window_out_ss = time_stamp + ': ' + out_temp.replace('\n','')
+                            # window_out_s = '<font color=\"#0000FF\">' + window_out_s + '</font>'
 
                             if logfile_flag == 1:
                                 if fp is not None:
                                     fp.write(window_out_s)
                                     fp.flush()
-                            self.loop_signal.emit(window_out_s)  # 注意这里与_signal = pyqtSignal(str)中的类型相同
-                            # print("window_out_s-3333->>>>" + window_out_s)
+                            self.loop_signal.emit(window_out_ss)  # 注意这里与_signal = pyqtSignal(str)中的类型相同
                             window_out_s = ""
 
                     except Exception as e:
@@ -136,6 +122,40 @@ class LoopThread(QtCore.QThread):
                 # print("will be end loop")
                 self.terminated = None
         print("end read serial")
+
+    def finished(self):
+        self.terminated = True
+
+    def quit(self):
+        self.terminated = True
+
+# 继承QThread
+class LoopThread_SendCmd(QtCore.QThread):
+    #  通过类成员对象定义信号对象
+    loop_signal = pyqtSignal(str)
+
+    def __init__(self, serial_num, dic_str):
+        super(LoopThread_SendCmd, self).__init__()
+        self.serial_num = serial_num
+        self.terminated = False
+        self.dic_str = dic_str
+        self.buffer = ''
+        self.queue = queue.Queue(maxsize=1048576)
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        global g_mainWindow
+        print("begin send sequence serial")
+        for command1 in self.dic_str:
+            print(command1['command'])
+            # g_mainWindow.send_bytes(command1['command'])
+            self.sleep(1)
+            # time.sleep(5)
+        # print(self.dic_str)
+        # g_mainWindow.send_bytes(self.dic_str)
+        print("end send sequence serial")
 
     def finished(self):
         self.terminated = True
@@ -426,6 +446,48 @@ class Miniterm(object):
             self.alive = False
             # self.console.cancel()
             raise       # XXX handle instead of re-raise?
+
+# class Sequence_Cmd_Thread(object):
+#     def __init__(self, dict_list) -> None:
+#         self.thread_id = None
+#         self.dict_list = dict_list
+#         # self.event = threading.Event()
+#     def create(self):
+#         self.thread_id = threading.Thread(target=self.run)
+#     def start(self):
+#         self.thread_id.daemon = True
+#         self.thread_id.start()
+#     def run(self):
+#         # print(self.dict_list)
+#         for command in self.dict_list:
+#             print(command['command'])
+#             time.sleep(1)
+#             # self.event.wait(timeout=1)
+#             # threading.Event.wait(self,timeout=0.1)
+#     def stop(self):
+#         self.thread_id.join()
+
+class Sequence_Cmd_Thread(QtCore.QThread):
+    cmd_signal = pyqtSignal(str)
+
+    def __init__(self, dict_list, pushButton_sequence_cmd):
+        super(Sequence_Cmd_Thread, self).__init__()
+        self.dict_list = dict_list
+        self.pushButton_sequence_cmd = pushButton_sequence_cmd
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        print("run Sequence_Cmd_Thread start")
+        for command in self.dict_list:
+            print("***at %s ***" % (time.ctime(time.time())))
+            print(command['command'])
+            self.cmd_signal.emit(command['command'])
+            time.sleep(command['timedelay'])
+        print("run Sequence_Cmd_Thread stop")
+        self.pushButton_sequence_cmd.setText("顺序发送")
+
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     sigSet_textedit = pyqtSignal(str)  ####信号定义
@@ -435,8 +497,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         super(MainWindow, self).__init__(parent)
         self.setupUi(self)
         # 设置应用程序的窗口图标
-        root = QFileInfo(__file__).absolutePath()
-        self.setWindowIcon(QIcon(root+'/lmedia1.ico'))
+
+        # root = QFileInfo(__file__).absolutePath()
+        # print("path is : ", root)
+        self.setWindowIcon(QIcon('lmedia1.ico'))
+        # if sys.platform == "win32":
+        #     print('try find windows icon')
+        #     self.setWindowIcon(QIcon('/lmedia1.ico'))
+        # else:
+        #     self.setWindowIcon(QIcon(root+'/lmedia1.ico'))
 
         #串口无效
         self.ser = None
@@ -540,6 +609,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.checkBox_cmp.clicked.connect(self.send_cmp_box)
         self.cmp_str_flag = False
 
+        #比较文件中的比较内容，然后发送对应的内容
+        self.pushButton_sequence_cmd.clicked.connect(self.click_sequence)
+
         #波特率修改
         self.comboBox_2.activated.connect(self.baud_modify)
 
@@ -549,6 +621,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         #开始保存文件
         # checkBox_savefile
         self.checkBox_savefile.stateChanged.connect(self.save_file)
+
+        if self.checkBox_savefile.checkState():
+            self.save_file()
+
+        self.click_sequence_flag = 0
+
+        #开始自动滚屏
+        self.checkBox_autoscroll.stateChanged.connect(self.auto_scroll_to_end)
 
         self._thread = None
 
@@ -564,6 +644,47 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # #定时器调用读取串口接收数据
         self.loop_send_timer.timeout.connect(self.fun_timer)
 
+        self.load_color_file_flag = False
+        self.load_color_file()
+
+    def click_sequence(self):
+        try:
+            if self.click_sequence_flag == 0:
+                self.pushButton_sequence_cmd.setText("正在发送")
+                self.click_sequence_flag = 1
+
+                with open("sequence_config.yaml") as fd:
+                    sequence_cmd_list = yaml.unsafe_load(fd)
+                print(sequence_cmd_list)
+                self.thread_sequence = Sequence_Cmd_Thread(dict_list=sequence_cmd_list,
+                                                            pushButton_sequence_cmd=self.pushButton_sequence_cmd)
+                self.thread_sequence.cmd_signal.connect(self.call_back)
+                self.thread_sequence.start()
+                print("run Sequence_Cmd_Thread 111111")
+
+
+            elif self.click_sequence_flag == 1:
+                self.pushButton_sequence_cmd.setText("顺序发送")
+                self.click_sequence_flag = 0
+                self.thread_sequence.exit()
+                self.thread_sequence.terminate()
+
+        except:
+            pass
+
+    def load_color_file(self):
+        with open("color.yaml") as fd:
+                self.color_str = yaml.unsafe_load(fd)
+                self.load_color_file_flag = True
+        # print("=======compare_config.yaml==============", time.strftime('%Y-%m-%d %H:%M:%S'))
+        # print(self.cmp_str)
+        # for command1 in self.cmp_str:
+        #     print("compare command is :", command1['compare_str'])
+        # self.cmp_str_flag = True
+
+    def call_back(self, msg):
+        print("call back msg:"+str(msg))
+        self.send_bytes(str(msg))
 
     def clicked_(self, qModelIndex):
         global edit_flag
@@ -588,6 +709,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 #串口拔出错误，关闭定时器
                 self.ser.close()
                 self.ser = None
+
+    def auto_scroll_to_end(self):
+        #获取到text光标
+        textCursor = self.textbrowser.textCursor()
+        #滚动到底部
+        textCursor.movePosition(textCursor.End)
+        #设置光标到text中去
+        self.textbrowser.setTextCursor(textCursor)
 
     def save_file(self):
         global logfile_flag
@@ -706,12 +835,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     for command1 in self.dict_str:
                         print(command1['command'])
                     if self.loop_send_timer.isActive() != True:
-                            self.loop_send_timer.start(100)  # 1s
+                            self.loop_send_timer.start(100)  # 100ms
                 except expression as identifier:
                     pass
             else:
                 if self.loop_send_timer.isActive() == True:
-                        self.loop_send_timer.stop()  # 1s
+                        self.loop_send_timer.stop()  # 100ms
 
     def send_cmp_box(self):
         print("read compare config")
@@ -730,6 +859,34 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 print("do nothing")
                 self.cmp_str_flag = False
+
+    # def send_sequence_cmd_box(self):
+    #     if self.ser != None:
+    #         print("click button")
+    #         self.send_sequence_class.start()
+    #         self.send_sequence_class.stop()
+    #         pass
+            # if self.checkBox_sequence_cmd.checkState():
+            #     print("read sequence config")
+            #     # try:
+            #         # for command1 in sequence_cmd_list:
+            #         # print("compare command is :", command1['command'])
+
+            #     self.send_sequence_class.start()
+            #     self.send_sequence_class.stop()
+            #     # # 创建线程
+            #     # cmd_thread = LoopThread_SendCmd(serial_num = self.ser, dic_str=sequence_cmd_list)
+            #     # # 开始线程
+            #     # cmd_thread.start()
+            #     # cmd_thread.exit()
+            #     self.checkBox_sequence_cmd.setCheckState(0)
+            #         # cmd_thread.stop()
+            #         # self.send_bytes(command1["command"])
+            #         # time.sleep(5)
+            #     # except expression as identifier:
+            #     #     pass
+            # else:
+            #     print("do nothing, close fd")
 
     #清除窗口操作
     def clear(self):
@@ -856,40 +1013,75 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.ser.port = self.comboBox.currentText()
 
     def set_textedit(self, log):
-        #先把光标移到到最后
-        cursor = self.textbrowser.textCursor()
-        if(cursor != cursor.End):
-            cursor.movePosition(cursor.End)
-            self.textbrowser.setTextCursor(cursor)
+        # #先把光标移到到最后
+        # cursor = self.textbrowser.textCursor()
+        # if(cursor != cursor.End):
+        #     cursor.movePosition(cursor.End)
+        #     self.textbrowser.setTextCursor(cursor)
 
-        #获取到text光标
-        textCursor = self.textbrowser.textCursor()
-        #滚动到底部
-        textCursor.movePosition(textCursor.End)
-        #设置光标到text中去
-        self.textbrowser.setTextCursor(textCursor)
+        if self.checkBox_autoscroll.checkState():
+            #获取到text光标
+            textCursor = self.textbrowser.textCursor()
+            #滚动到底部
+            textCursor.movePosition(textCursor.End)
+            #设置光标到text中去
+            self.textbrowser.setTextCursor(textCursor)
 
-        #把字符串显示到窗口中去
-        self.textbrowser.insertPlainText(log)
+        # #把字符串显示到窗口中去
+        if self.load_color_file_flag == True:
+            for command in self.color_str:
+                # print("compare command is :", command['compare_str'])
+                if log.find(command['compare_str']) >= 1:
+                    # print("aaaaaaaaaaaaa", command['color'])
+                    aaaa = Qt.GlobalColor(command['color'])
+                    self.textbrowser.setTextColor(aaaa)
+                    break
+        else:
+            if log.find("INFO: ") >= 1:
+                self.textbrowser.setTextColor(Qt.GlobalColor.blue)
+            elif log.find("DEBUG:") >= 1:
+                self.textbrowser.setTextColor(Qt.GlobalColor.black)
+            elif log.find("=>ERROR:") >= 1:
+                self.textbrowser.setTextColor(Qt.GlobalColor.red)
+            elif log.find("WARNNING:") >= 1:
+                self.textbrowser.setTextColor(Qt.GlobalColor.darkYellow)
 
-        #获取到text光标
-        textCursor = self.textbrowser.textCursor()
-        #滚动到底部
-        textCursor.movePosition(textCursor.End)
-        #设置光标到text中去
-        self.textbrowser.setTextCursor(textCursor)
+        # print("Qt.GlobalColor.blue", Qt.GlobalColor.blue)
+        # print("type Qt.GlobalColor.blue", type(Qt.GlobalColor.blue))
+        # aaaa = Qt.GlobalColor(command['color'])
+
+        # if log.find("INFO: ") >= 1:
+        #     self.textbrowser.setTextColor(aaaa)
+        # elif log.find("DEBUG:") >= 1:
+        #     self.textbrowser.setTextColor(Qt.GlobalColor.black)
+        # elif log.find("=>ERROR:") >= 1:
+        #     self.textbrowser.setTextColor(Qt.GlobalColor.red)
+        # elif log.find("WARNNING:") >= 1:
+        #     self.textbrowser.setTextColor(Qt.GlobalColor.darkYellow)
+
+        # self.textbrowser.insertPlainText(log)
+        self.textbrowser.append(log)
+        self.textbrowser.setTextColor(Qt.GlobalColor.black)
+
+        if self.checkBox_autoscroll.checkState():
+            #获取到text光标
+            textCursor = self.textbrowser.textCursor()
+            #滚动到底部
+            textCursor.movePosition(textCursor.End)
+            #设置光标到text中去
+            self.textbrowser.setTextCursor(textCursor)
 
         if self.cmp_str_flag == True:
             for cmd_str in self.cmp_str:
                 if str(log).find(cmd_str['compare_str']) != -1:
                     send_cmd_str_temp = '\r'+'\n'+cmd_str['send_cmd']+'\r'+'\n'
                     self.send_bytes(send_str=send_cmd_str_temp)
-        #获取到text光标
-        textCursor = self.textbrowser.textCursor()
-        #滚动到底部
-        textCursor.movePosition(textCursor.End)
-        #设置光标到text中去
-        self.textbrowser.setTextCursor(textCursor)
+        # #获取到text光标
+        # textCursor = self.textbrowser.textCursor()
+        # #滚动到底部
+        # textCursor.movePosition(textCursor.End)
+        # #设置光标到text中去
+        # self.textbrowser.setTextCursor(textCursor)
 
     def loop_start(self):
         # 创建线程
@@ -982,6 +1174,7 @@ if __name__ == "__main__":
         with open(history_cmd_file_name) as fd:
             cmd_str = yaml.unsafe_load(fd)
         fd.close()
+
         cmd_temp = deleteDuplicate(cmd_str)
         with open(history_cmd_file_name,"w",encoding="utf-8") as fd:
             yaml.dump(cmd_temp,fd)
@@ -991,7 +1184,10 @@ if __name__ == "__main__":
         g_mainWindow = MainWindow()
         g_mainWindow.show()
         sys.exit(app.exec_())
-    except Exception as e:
-        print("============, error:%s" % (e))
+    except Exception as exp:
+        print("============, error:%s" % (exp))
+        with open("crash_log.txt","w",encoding="utf-8") as fd:
+            fd.write( exp )
+        fd.close()
     finally:
         print("*** end at %s ***" % (time.ctime(time.time())))

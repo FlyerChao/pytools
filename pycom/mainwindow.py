@@ -32,11 +32,16 @@ class Ui_MainWindow(object):
         self.textbrowser.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.textbrowser.setObjectName("textbrowser")
         self.textbrowser.document().setMaximumBlockCount(10000)
+        self.textbrowser.setReadOnly(True);
+        # 背景色设置为黑色
+        # self.textbrowser.setStyleSheet("background:black")
+        # self.textbrowser.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.NoTextInteraction)
         #设置背景图片，固定，上下左右居中
         # self.textbrowser.setStyleSheet("background-image:url(:/water.png);\n"
-        self.textbrowser.setStyleSheet("background-attachment:fixed;\n"
-                                    "background-repeat:none;\n"
-                                    "background-position:center")
+        # self.textbrowser.setStyleSheet("background-image:url(background.jpg)")
+        # self.textbrowser.setStyleSheet("background-attachment:fixed;\n"
+        #                             "background-repeat:none;\n"
+        #                             "background-position:center")
         self.gridLayout.addWidget(self.textbrowser, 0, 0, 1, 1)
         self.line = QtWidgets.QFrame(self.centralWidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
@@ -89,6 +94,7 @@ class Ui_MainWindow(object):
         self.pushButton_2.setCheckable(True)
         self.pushButton_2.setObjectName("pushButton_2")
         self.horizontalLayout.addWidget(self.pushButton_2)
+
         self.pushButton_4 = QtWidgets.QPushButton(self.centralWidget)
         self.pushButton_4.setEnabled(True)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
@@ -124,8 +130,19 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.checkBox_savefile.sizePolicy().hasHeightForWidth())
         self.checkBox_savefile.setSizePolicy(sizePolicy)
+        # self.checkBox_savefile.setChecked(True)
         self.checkBox_savefile.setObjectName("checkBox_savefile")
         self.horizontalLayout.addWidget(self.checkBox_savefile)
+
+        self.checkBox_autoscroll = QtWidgets.QCheckBox(self.centralWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.checkBox_autoscroll.sizePolicy().hasHeightForWidth())
+        self.checkBox_autoscroll.setSizePolicy(sizePolicy)
+        self.checkBox_autoscroll.setObjectName("checkBox_autoscroll")
+        # self.checkBox_autoscroll.setChecked(True)
+        self.horizontalLayout.addWidget(self.checkBox_autoscroll)
 
         # 设置第二行的内容
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -175,6 +192,15 @@ class Ui_MainWindow(object):
         self.checkBox_cmp.setSizePolicy(sizePolicy)
         self.checkBox_cmp.setObjectName("checkBox_cmp")
         self.horizontalLayout_2.addWidget(self.checkBox_cmp)
+
+        self.pushButton_sequence_cmd = QtWidgets.QPushButton(self.centralWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.pushButton_sequence_cmd.sizePolicy().hasHeightForWidth())
+        self.pushButton_sequence_cmd.setSizePolicy(sizePolicy)
+        self.pushButton_sequence_cmd.setObjectName("pushButton")
+        self.horizontalLayout_2.addWidget(self.pushButton_sequence_cmd)
 
 
         # self.lineEdit_2 = QtWidgets.QLineEdit(self.centralWidget)
@@ -392,16 +418,18 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "串口助手V2.2 by Fei"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Serial Tool V2.4 by Geoffrey"))
         self.label.setText(_translate("MainWindow", "串口号"))
         self.pushButton_2.setText(_translate("MainWindow", "打开串口"))
         self.pushButton_4.setText(_translate("MainWindow", "刷新串口设备"))
         # self.checkBox_3.setText(_translate("MainWindow", "HEX显示"))
         self.pushButton_3.setText(_translate("MainWindow", "清除窗口"))
         self.checkBox_savefile.setText(_translate("MainWindow", "保存文件"))
+        self.checkBox_autoscroll.setText(_translate("MainWindow", "自动滚屏"))
         self.label_2.setText(_translate("MainWindow", "波特率"))
         self.checkBox_4.setText(_translate("MainWindow", "定时发送"))
         self.checkBox_cmp.setText(_translate("MainWindow", "比较发送"))
+        self.pushButton_sequence_cmd.setText(_translate("MainWindow", "顺序发送"))
         # self.lineEdit_2.setText(_translate("MainWindow", "1000"))
         # self.label_7.setText(_translate("MainWindow", "ms/次"))
         self.label_4.setText(_translate("MainWindow", "数据位"))

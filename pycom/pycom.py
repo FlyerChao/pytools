@@ -1187,7 +1187,7 @@ if __name__ == "__main__":
     except Exception as exp:
         print("============, error:%s" % (exp))
         with open("crash_log.txt","w",encoding="utf-8") as fd:
-            fd.write( exp )
+            fd.write( str(exp) )
         fd.close()
     finally:
         print("*** end at %s ***" % (time.ctime(time.time())))

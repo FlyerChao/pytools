@@ -7,7 +7,6 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -26,13 +25,21 @@ class Ui_MainWindow(object):
         self.gridLayout.setHorizontalSpacing(10)
         self.gridLayout.setVerticalSpacing(0)
         self.gridLayout.setObjectName("gridLayout")
+
         self.textbrowser = QtWidgets.QTextEdit(self.centralWidget)
         self.textbrowser.setMinimumSize(QtCore.QSize(20, 40))
         self.textbrowser.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.textbrowser.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.textbrowser.setObjectName("textbrowser")
         self.textbrowser.document().setMaximumBlockCount(10000)
-        self.textbrowser.setReadOnly(True);
+        self.textbrowser.setReadOnly(True)
+
+        font = QtGui.QFont()
+        font.setFamilies([u"Courier New"])
+        font.setPointSize(12)
+        self.textbrowser.setFont(font)
+
+        # self.textbrowser.setFontFamily("Courier New")
         # 背景色设置为黑色
         # self.textbrowser.setStyleSheet("background:black")
         # self.textbrowser.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.NoTextInteraction)
@@ -201,6 +208,15 @@ class Ui_MainWindow(object):
         self.pushButton_sequence_cmd.setSizePolicy(sizePolicy)
         self.pushButton_sequence_cmd.setObjectName("pushButton")
         self.horizontalLayout_2.addWidget(self.pushButton_sequence_cmd)
+
+        self.pushButton_reload_color = QtWidgets.QPushButton(self.centralWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.pushButton_reload_color.sizePolicy().hasHeightForWidth())
+        self.pushButton_reload_color.setSizePolicy(sizePolicy)
+        self.pushButton_reload_color.setObjectName("pushButton")
+        self.horizontalLayout_2.addWidget(self.pushButton_reload_color)
 
 
         # self.lineEdit_2 = QtWidgets.QLineEdit(self.centralWidget)
@@ -418,7 +434,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Serial Tool V2.4 by Geoffrey"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "串口工具 V2.5 by Geoffrey"))
         self.label.setText(_translate("MainWindow", "串口号"))
         self.pushButton_2.setText(_translate("MainWindow", "打开串口"))
         self.pushButton_4.setText(_translate("MainWindow", "刷新串口设备"))
@@ -430,6 +446,7 @@ class Ui_MainWindow(object):
         self.checkBox_4.setText(_translate("MainWindow", "定时发送"))
         self.checkBox_cmp.setText(_translate("MainWindow", "比较发送"))
         self.pushButton_sequence_cmd.setText(_translate("MainWindow", "顺序发送"))
+        self.pushButton_reload_color.setText(_translate("MainWindow", "重新配色"))
         # self.lineEdit_2.setText(_translate("MainWindow", "1000"))
         # self.label_7.setText(_translate("MainWindow", "ms/次"))
         self.label_4.setText(_translate("MainWindow", "数据位"))

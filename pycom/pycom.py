@@ -1,7 +1,8 @@
 # coding:utf-8
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QMessageBox, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel
+from PyQt5.QtGui import QIcon, QPainter, QPaintEvent, QBrush
 from PyQt5.QtCore import *
 from PyQt5.QtCore import QStringListModel, Qt
 from serial.tools import miniterm
@@ -63,6 +64,95 @@ def fuzzyfinder_test(input, collection, accessor=lambda x: x):
 
     return (z[-1] for z in sorted(suggestions))
 
+class Toast(QWidget):
+    style = """#LabelMessage{color:white;font-family:Microsoft YaHei;}"""
+
+    def __init__(self, message='', timeout=1500, parent=None):
+        """
+        @param message: 提示信息
+        @param timeout: 窗口显示时长
+        @param parent: 父窗口控件
+        """
+        super(Toast, self).__init__()
+        self.parent = parent
+        # 除了成功之外其他消息图标一律使用错误图标（有局限性：成功的具体信息有很多种，但这里没办法区分，待改）
+        self.timer = QTimer()
+        # 由于不知道动画结束的事件，所以借助QTimer来关闭窗口，动画结束就关闭窗口，所以这里的事件要和动画时间一样
+        self.timer.singleShot(timeout, self.close)  # singleShot表示timer只会启动一次
+
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.SubWindow)
+        # self.setWindowOpacity(0.9)  # 设置窗口透明度
+        self.setAttribute(Qt.WA_TranslucentBackground)  # 设置窗口透明
+        self.setObjectName('Toast')
+        # self.setFixedSize(QSize(220, 100))
+        self.setMinimumSize(QSize(220, 100))
+        self.setMaximumSize(QSize(220, 180))
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(20, -1, 20, -1)
+        layout.setObjectName("HorizontalLayout")
+        self.setLayout(layout)
+
+        self.initUi(layout, message)
+        self.createAnimation(timeout)
+
+        self.setStyleSheet(Toast.style)
+        self.center()
+
+    def initUi(self, layout, message):
+        messageLabel = QLabel()
+        # 实现QLabel自动换行
+        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(messageLabel.sizePolicy().hasHeightForWidth())
+        messageLabel.setSizePolicy(sizePolicy)
+        messageLabel.setWordWrap(True)
+        messageLabel.setText(message)
+        messageLabel.setTextFormat(Qt.AutoText)
+        messageLabel.setScaledContents(True)
+        messageLabel.setObjectName("LabelMessage")
+        messageLabel.setAlignment(Qt.AlignCenter)
+        layout.addWidget(messageLabel)
+
+    def paintEvent(self, a0: QPaintEvent):
+        qp = QPainter()
+        qp.begin(self)  # 不能掉，不然没效果
+        qp.setRenderHints(QPainter.Antialiasing, True)  # 抗锯齿
+        qp.setBrush(QBrush(Qt.black))
+        qp.setPen(Qt.transparent)
+        rect = self.rect()
+        rect.setWidth(rect.width() - 1)
+        rect.setHeight(rect.height() - 1)
+        qp.drawRoundedRect(rect, 15, 15)
+        qp.end()
+
+    def createAnimation(self, timeout):
+        # 1.定义一个动画
+        self.animation = QPropertyAnimation(self, b'windowOpacity')
+        self.animation.setTargetObject(self)
+        # 2.设置属性值
+        self.animation.setStartValue(0)
+        self.animation.setKeyValueAt(0.2, 0.7)  # 设置插值0.3 表示单本次动画时间的0.3处的时间点
+        self.animation.setKeyValueAt(0.8, 0.7)  # 设置插值0.8 表示单本次动画时间的0.3处的时间点
+        self.animation.setEndValue(0)
+        # 3.设置时长
+        self.animation.setDuration(timeout)
+        # 4.启动动画
+        self.animation.start()
+
+    def center(self):
+        if self.parent is not None:
+            xPos = self.parent.x()+int((self.parent.width() - self.width()) / 2)
+            yPos = self.parent.y()+int((self.parent.height() - self.height()) / 2 + 40)
+            self.move(xPos, yPos)
+        else:
+            # 屏幕居中
+            screen = QDesktopWidget().screenGeometry()
+            size = self.geometry()
+            self.move(int((screen.width() - size.width()) / 2),
+                      int((screen.height() - size.height()) / 2) + 40)
+
 # 继承QThread
 class LoopThread(QtCore.QThread):
     #  通过类成员对象定义信号对象
@@ -108,8 +198,8 @@ class LoopThread(QtCore.QThread):
                             self.loop_signal.emit(window_out_ss)  # 注意这里与_signal = pyqtSignal(str)中的类型相同
                             window_out_s = ""
 
-                    except Exception as e:
-                        print("============, error:%s" % (e))
+                    except Exception as exp:
+                        print("============, error:%s" % (exp))
                         #串口拔出错误，关闭定时器
                         print("uart eject")
                         self.ser = None
@@ -118,6 +208,9 @@ class LoopThread(QtCore.QThread):
                         #刷新一下串口的列表
                         g_mainWindow.refresh()
                         self.finished()
+                        with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                            fd.write( str(exp) )
+                        fd.close()
             else:
                 # print("will be end loop")
                 self.terminated = None
@@ -184,6 +277,10 @@ except NameError:
     # pylint: disable=redefined-builtin,invalid-name
     raw_input = input   # in python3 it's "raw"
     unichr = chr
+except Exception as exp:
+    with open("crash_log.txt","w+",encoding="utf-8") as fd:
+        fd.write( str(exp) )
+    fd.close()
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -412,9 +509,12 @@ class Miniterm(object):
                 ('active' if self.serial.dsr else 'inactive'),
                 ('active' if self.serial.ri else 'inactive'),
                 ('active' if self.serial.cd else 'inactive')))
-        except serial.SerialException:
+        except serial.SerialException as exp:
             # on RFC 2217 ports, it can happen if no modem state notification was
             # yet received. ignore this error.
+            with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                fd.write( str(exp) )
+            fd.close()
             pass
         sys.stderr.write('--- software flow control: {}\n'.format('active' if self.serial.xonxoff else 'inactive'))
         sys.stderr.write('--- hardware flow control: {}\n'.format('active' if self.serial.rtscts else 'inactive'))
@@ -442,30 +542,14 @@ class Miniterm(object):
                         # self.console.write(text)
                         # print("0000"+text)
                         queue_buf.put(text)
-        except serial.SerialException:
+                #give the cpu a break
+                time.sleep(0.01)
+        except serial.SerialException as exp:
             self.alive = False
             # self.console.cancel()
-            raise       # XXX handle instead of re-raise?
-
-# class Sequence_Cmd_Thread(object):
-#     def __init__(self, dict_list) -> None:
-#         self.thread_id = None
-#         self.dict_list = dict_list
-#         # self.event = threading.Event()
-#     def create(self):
-#         self.thread_id = threading.Thread(target=self.run)
-#     def start(self):
-#         self.thread_id.daemon = True
-#         self.thread_id.start()
-#     def run(self):
-#         # print(self.dict_list)
-#         for command in self.dict_list:
-#             print(command['command'])
-#             time.sleep(1)
-#             # self.event.wait(timeout=1)
-#             # threading.Event.wait(self,timeout=0.1)
-#     def stop(self):
-#         self.thread_id.join()
+            with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                fd.write( str(exp) )
+            fd.close()
 
 class Sequence_Cmd_Thread(QtCore.QThread):
     cmd_signal = pyqtSignal(str)
@@ -513,6 +597,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.receive_num = 0
         #记录最后发送的回车字符的变量
         self.rcv_enter = ''
+
+        self.listnode = list()
 
         # #显示发送与接收的字符数量
         # dis = '发送：'+ '{:d}'.format(self.send_num) + '  接收:' + '{:d}'.format(self.receive_num)
@@ -612,6 +698,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         #比较文件中的比较内容，然后发送对应的内容
         self.pushButton_sequence_cmd.clicked.connect(self.click_sequence)
 
+        #比较文件中的比较内容，然后发送对应的内容
+        # self.pushButton_reload_color.clicked.connect(self.load_color_file)
+        self.pushButton_reload_color.clicked.connect(self.reload_color_file)
+
         #波特率修改
         self.comboBox_2.activated.connect(self.baud_modify)
 
@@ -647,13 +737,41 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.load_color_file_flag = False
         self.load_color_file()
 
+        self.send_list_buf = list()
+        self.p_thread_send_cmd = threading.Thread(target=self.thread_send_cmd, name='rx')
+
+    def reload_color_file(self):
+        Toast("重新加载配色", parent=self, timeout=1000).show()
+        self.load_color_file()
+
+    def thread_send_cmd(self):
+        """loop and copy serial->console"""
+        try:
+            # while self.ser != None:
+            while True:
+                for i in range(self.send_list_buf.__len__()):
+                    print("*send at %s ***" % (time.ctime(time.time())))
+                    command = self.send_list_buf.pop(0)
+                    print("try to send command: ",command)
+                    self.send_bytes(str(command))
+                    # 延时100ms发送下个命令
+                    time.sleep(0.1)
+                #give the cpu a break
+                time.sleep(0.01)
+        except serial.SerialException as exp:
+            self.alive = False
+            # self.console.cancel()
+            with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                fd.write( str(exp) )
+            fd.close()
+
     def click_sequence(self):
         try:
             if self.click_sequence_flag == 0:
                 self.pushButton_sequence_cmd.setText("正在发送")
                 self.click_sequence_flag = 1
 
-                with open("sequence_config.yaml") as fd:
+                with open("sequence_config.yaml","r",encoding='utf8') as fd:
                     sequence_cmd_list = yaml.unsafe_load(fd)
                 print(sequence_cmd_list)
                 self.thread_sequence = Sequence_Cmd_Thread(dict_list=sequence_cmd_list,
@@ -662,29 +780,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.thread_sequence.start()
                 print("run Sequence_Cmd_Thread 111111")
 
-
             elif self.click_sequence_flag == 1:
                 self.pushButton_sequence_cmd.setText("顺序发送")
                 self.click_sequence_flag = 0
                 self.thread_sequence.exit()
                 self.thread_sequence.terminate()
 
-        except:
+        except Exception as exp:
+            with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                fd.write( str(exp) )
+            fd.close()
             pass
 
     def load_color_file(self):
-        with open("color.yaml") as fd:
+        with open("color.yaml","r",encoding='utf8') as fd:
+                print("导入配色文件")
                 self.color_str = yaml.unsafe_load(fd)
                 self.load_color_file_flag = True
-        # print("=======compare_config.yaml==============", time.strftime('%Y-%m-%d %H:%M:%S'))
-        # print(self.cmp_str)
-        # for command1 in self.cmp_str:
-        #     print("compare command is :", command1['compare_str'])
-        # self.cmp_str_flag = True
+                print(self.color_str)
 
     def call_back(self, msg):
         print("call back msg:"+str(msg))
-        self.send_bytes(str(msg))
+        self.send_list_buf.append(msg)
+        # self.send_bytes(str(msg))
 
     def clicked_(self, qModelIndex):
         global edit_flag
@@ -705,10 +823,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             input_s = input_s.encode('utf-8')
             try:
                 num = self.ser.write(input_s)
-            except:
+            except Exception as exp:
                 #串口拔出错误，关闭定时器
                 self.ser.close()
                 self.ser = None
+                with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                    fd.write( str(exp) )
+                fd.close()
 
     def auto_scroll_to_end(self):
         #获取到text光标
@@ -829,14 +950,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.ser != None:
             if self.checkBox_4.checkState():
                 try:
-                    with open("com_config.yaml") as fd:
+                    with open("com_config.yaml","r",encoding='utf8') as fd:
                         self.dict_str = yaml.unsafe_load(fd)
                     print("=======com_config.yaml==============",time.strftime('%Y-%m-%d %H:%M:%S'))
                     for command1 in self.dict_str:
                         print(command1['command'])
                     if self.loop_send_timer.isActive() != True:
                             self.loop_send_timer.start(100)  # 100ms
-                except expression as identifier:
+                except Exception as exp:
+                    with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                        fd.write( str(exp) )
+                    fd.close()
                     pass
             else:
                 if self.loop_send_timer.isActive() == True:
@@ -847,14 +971,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.ser != None:
             if self.checkBox_cmp.checkState():
                 try:
-                    with open("compare_config.yaml") as fd:
+                    with open("compare_config.yaml","r",encoding='utf8') as fd:
                         self.cmp_str = yaml.unsafe_load(fd)
                     print("=======compare_config.yaml==============", time.strftime('%Y-%m-%d %H:%M:%S'))
                     print(self.cmp_str)
                     for command1 in self.cmp_str:
                         print("compare command is :", command1['compare_str'])
                     self.cmp_str_flag = True
-                except expression as identifier:
+                except Exception as exp:
+                    with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                        fd.write( str(exp) )
+                    fd.close()
                     pass
             else:
                 print("do nothing")
@@ -909,7 +1036,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             # print("edit3: ", self.lineEdit_3cmd.text())
             str_temp = self.lineEdit_3cmd.text()
         try:
-            with open(history_cmd_file_name) as fd:
+            with open(history_cmd_file_name,"r",encoding='utf8') as fd:
                 cmd_str = yaml.unsafe_load(fd)
             for command in cmd_str:
                 # print("history command is :", command['cmd_str'])
@@ -920,8 +1047,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.list_text = list(fuzzyfinder_test(str_temp,collection))
             self.slm.setStringList(self.list_text)
             fd.close()
-        except Exception as e:
-            print("=====line_edit_get=====, error:%s" % (e))
+        except Exception as exp:
+            print("=====line_edit_get=====, error:%s" % (exp))
+            with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                fd.write( str(exp) )
+            fd.close()
             pass
 
     #串口发送数据处理
@@ -951,9 +1081,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         try:
                             num = int(input_s[0:2], 16)
 
-                        except ValueError:
+                        except ValueError as exp:
                             print('input hex data!')
                             QMessageBox.critical(self, 'pycom','请输入十六进制数据，以空格分开!')
+                            with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                                fd.write( str(exp) )
+                            fd.close()
                             return None
 
                         input_s = input_s[2:]
@@ -966,7 +1099,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 #发送数据
                 try:
                     num = self.ser.write(input_s)
-                    with open(history_cmd_file_name) as fd:
+                    with open(history_cmd_file_name,"r",encoding='utf8') as fd:
                         cmd_list = yaml.unsafe_load(fd)
                     fd.close()
                     for command in cmd_list:
@@ -984,7 +1117,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                             yaml.dump(cmd_list,fd)
                         fd.close()
 
-                except:
+                except Exception as exp:
                     #串口拔出错误，关闭定时器
                     self.ser.close()
                     self.ser = None
@@ -993,6 +1126,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.pushButton_2.setChecked(False)
                     self.pushButton_2.setText("打开串口")
                     print('serial error send!')
+                    with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                        fd.write( str(exp) )
+                    fd.close()
                     return None
 
             else:
@@ -1046,19 +1182,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             elif log.find("WARNNING:") >= 1:
                 self.textbrowser.setTextColor(Qt.GlobalColor.darkYellow)
 
-        # print("Qt.GlobalColor.blue", Qt.GlobalColor.blue)
-        # print("type Qt.GlobalColor.blue", type(Qt.GlobalColor.blue))
-        # aaaa = Qt.GlobalColor(command['color'])
-
-        # if log.find("INFO: ") >= 1:
-        #     self.textbrowser.setTextColor(aaaa)
-        # elif log.find("DEBUG:") >= 1:
-        #     self.textbrowser.setTextColor(Qt.GlobalColor.black)
-        # elif log.find("=>ERROR:") >= 1:
-        #     self.textbrowser.setTextColor(Qt.GlobalColor.red)
-        # elif log.find("WARNNING:") >= 1:
-        #     self.textbrowser.setTextColor(Qt.GlobalColor.darkYellow)
-
         # self.textbrowser.insertPlainText(log)
         self.textbrowser.append(log)
         self.textbrowser.setTextColor(Qt.GlobalColor.black)
@@ -1075,13 +1198,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for cmd_str in self.cmp_str:
                 if str(log).find(cmd_str['compare_str']) != -1:
                     send_cmd_str_temp = '\r'+'\n'+cmd_str['send_cmd']+'\r'+'\n'
-                    self.send_bytes(send_str=send_cmd_str_temp)
-        # #获取到text光标
-        # textCursor = self.textbrowser.textCursor()
-        # #滚动到底部
-        # textCursor.movePosition(textCursor.End)
-        # #设置光标到text中去
-        # self.textbrowser.setTextCursor(textCursor)
+                    # self.send_bytes(send_str=send_cmd_str_temp)
+                    self.send_list_buf.append(send_cmd_str_temp)
 
     def loop_start(self):
         # 创建线程
@@ -1109,9 +1227,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 # self.ser = serial.Serial(self.comboBox.currentText(), int(self.comboBox_2.currentText()), timeout=0.1)
                 self.ser = serial.Serial(self.comboBox.currentText(), int(self.comboBox_2.currentText()), timeout=1)
                 self.miniterm = Miniterm(serial_instance=self.ser)
-            except Exception as e:
-                print("============, error:%s" % (e))
+            except Exception as exp:
+                print("============, error:%s" % (exp))
                 QMessageBox.critical(self, 'pycom','没有可用的串口或当前串口被占用')
+                with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                    fd.write( str(exp) )
+                fd.close()
                 return None
             #字符间隔超时时间设置
             # self.ser.interCharTimeout = 0.001
@@ -1121,6 +1242,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.loop_start()
             # self.timer.start(1)
             self.pushButton_2.setText("关闭串口")
+            if not self.p_thread_send_cmd.is_alive():
+                self.p_thread_send_cmd.start()
             print('open')
         else:
             #关闭定时器，停止读取接收数据
@@ -1131,12 +1254,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             try:
                 #关闭串口
                 self.ser.close()
-            except:
+            except Exception as exp:
                 # QMessageBox.critical(self, 'pycom','关闭串口失败')
+                with open("crash_log.txt","w+",encoding="utf-8") as fd:
+                    fd.write( str(exp) )
+                fd.close()
                 return None
             time.sleep(0.5)
             self.ser = None
             self.pushButton_2.setText("打开串口")
+            # self.p_thread_send_cmd._stop()
             print('close!')
 
     def fun_timer(self):
@@ -1145,9 +1272,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if (self.intervalseconds % int(command_dic['interval'])) == 0:
                     if self.sendcount != 0 and command_dic['count'] != 0:
                         if command_dic['count'] == -1:
-                            self.send_bytes(send_str=command_dic['command'])
+                            # self.send_bytes(send_str=command_dic['command'])
+                            self.send_list_buf.append(command_dic['command'])
                         elif self.sendcount <= ( int(command_dic['count']) * int(command_dic['interval'])):
-                            self.send_bytes(send_str=command_dic['command'])
+                            # self.send_bytes(send_str=command_dic['command'])
+                            self.send_list_buf.append(command_dic['command'])
                         # time.sleep(0.1)
         self.intervalseconds = self.intervalseconds + 1
         self.sendcount = self.sendcount + 1
@@ -1171,7 +1300,7 @@ if __name__ == "__main__":
         print("*** start at %s ***" % (time.ctime(time.time())))
         queue_buf = queue.Queue(maxsize=1048576)
 
-        with open(history_cmd_file_name) as fd:
+        with open(history_cmd_file_name,"r",encoding='utf8') as fd:
             cmd_str = yaml.unsafe_load(fd)
         fd.close()
 
@@ -1186,7 +1315,7 @@ if __name__ == "__main__":
         sys.exit(app.exec_())
     except Exception as exp:
         print("============, error:%s" % (exp))
-        with open("crash_log.txt","w",encoding="utf-8") as fd:
+        with open("crash_log.txt","w+",encoding="utf-8") as fd:
             fd.write( str(exp) )
         fd.close()
     finally:

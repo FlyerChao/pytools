@@ -20,12 +20,13 @@
 #         darkYellow = 18... # type: Qt.GlobalColor
 #         transparent = 19... # type: Qt.GlobalColor
 
+# 配色文件会有优先级，按照顺序来查找对应的字符串
+
 - compare_str: 'INFO: '
   color: 9
-- compare_str: 'DEBUG:'
-  color: 2
 - compare_str: '=>ERROR:'
   color: 7
 - compare_str: 'WARNNING:'
   color: 10
-
+- compare_str: 'DEBUG:'
+  color: 2

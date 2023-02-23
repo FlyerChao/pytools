@@ -734,7 +734,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # #定时器调用读取串口接收数据
         self.loop_send_timer.timeout.connect(self.fun_timer)
 
-        self.load_color_file_flag = False
+        self.load_color_file_flag = True
         self.load_color_file()
 
         self.send_list_buf = list()
@@ -1165,13 +1165,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # #把字符串显示到窗口中去
         if self.load_color_file_flag == True:
+            self.color_flag = 0
             for command in self.color_str:
                 # print("compare command is :", command['compare_str'])
                 if log.find(command['compare_str']) >= 1:
                     # print("aaaaaaaaaaaaa", command['color'])
                     aaaa = Qt.GlobalColor(command['color'])
                     self.textbrowser.setTextColor(aaaa)
+                    self.color_flag = 1
                     break
+            if self.color_flag == 0:
+               self.textbrowser.setTextColor(Qt.GlobalColor.black)
         else:
             if log.find("INFO: ") >= 1:
                 self.textbrowser.setTextColor(Qt.GlobalColor.blue)
@@ -1181,6 +1185,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.textbrowser.setTextColor(Qt.GlobalColor.red)
             elif log.find("WARNNING:") >= 1:
                 self.textbrowser.setTextColor(Qt.GlobalColor.darkYellow)
+            else:
+                self.textbrowser.setTextColor(Qt.GlobalColor.black)
 
         # self.textbrowser.insertPlainText(log)
         self.textbrowser.append(log)
